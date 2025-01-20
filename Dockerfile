@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/linuxserver/baseimage-alpine-nginx:3.20
+FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
 # set version label
 ARG BUILD_DATE
@@ -56,6 +56,6 @@ RUN \
 COPY root/ /
 
 # ports and volumes
-EXPOSE 80 443
+EXPOSE 80
 
 VOLUME /config /gallery
