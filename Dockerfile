@@ -15,6 +15,8 @@ RUN \
   apk add --no-cache \
     exiftool \
     ffmpeg \
+    nginx \
+    openssl \
     imagemagick \
     imagemagick-heic \
     libjpeg-turbo-utils \
@@ -55,6 +57,18 @@ RUN \
     php83-xmlwriter \
     php83-zip \
     php83-zlib && \
+
+    echo "**** configure nginx ****" && \
+  echo 'fastcgi_param  HTTP_PROXY         ""; # https://httpoxy.org/' >> \
+    /etc/nginx/fastcgi_params && \
+  echo 'fastcgi_param  PATH_INFO          $fastcgi_path_info; # http://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_split_path_info' >> \
+    /etc/nginx/fastcgi_params && \
+  echo 'fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name; # https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/#connecting-nginx-to-php-fpm' >> \
+    /etc/nginx/fastcgi_params && \
+  echo 'fastcgi_param  SERVER_NAME        $host; # Send HTTP_HOST as SERVER_NAME. If HTTP_HOST is blank, send the value of server_name from nginx (default is `_`)' >> \
+    /etc/nginx/fastcgi_params && \
+  rm -f /etc/nginx/conf.d/stream.conf && \
+  rm -f /etc/nginx/http.d/default.conf && \
 
     echo "**** guarantee correct php version is symlinked ****" && \
   if [ "$(readlink /usr/bin/php)" != "php83" ]; then \
