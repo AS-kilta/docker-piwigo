@@ -33,9 +33,11 @@ RUN \
     php83-xsl \
     php83-zip \
     poppler-utils \
-    re2c && \
+    re2c
+RUN \
   echo "**** modify php-fpm process limits ****" && \
   sed -i 's/pm.max_children = 5/pm.max_children = 32/' /etc/php83/php-fpm.d/www.conf && \
+RUN \
   echo "**** download piwigo ****" && \
   if [ -z ${PIWIGO_RELEASE+x} ]; then \
     PIWIGO_RELEASE=$(curl -sX GET "https://api.github.com/repos/Piwigo/Piwigo/releases/latest" \
@@ -48,6 +50,7 @@ RUN \
   unzip -q /tmp/piwigo.zip -d /tmp && \
   mv /tmp/piwigo/* /app/www/public && \
   printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \
+RUN \  
   echo "**** cleanup ****" && \
   rm -rf \
     /tmp/*
