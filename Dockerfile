@@ -37,11 +37,7 @@ RUN \
     
 RUN \
   echo "**** modify php-fpm process limits ****" && \
-  if [ -f /etc/php83/php-fpm.d/www.conf ]; then \
-    sed -i 's/pm.max_children = 5/pm.max_children = 32/' /etc/php83/php-fpm.d/www.conf; \
-  else \
-    echo "pm.max_children = 32" >> /etc/php83/php-fpm.d/www.conf; \
-  fi
+  sudo sed -i 's/pm.max_children = 5/pm.max_children = 32/' /etc/php83/php-fpm.d/www.conf
   
 RUN \
   echo "**** download piwigo ****" && \
