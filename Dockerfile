@@ -7,7 +7,8 @@ ARG BUILD_DATE
 ARG VERSION
 ARG PIWIGO_RELEASE
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="thespad"
+
+ENV PHP_INI_SCAN_DIR=":/config/php"
 
 RUN \
   echo "**** install packages ****" && \
@@ -33,13 +34,62 @@ RUN \
     php83-xsl \
     php83-zip \
     poppler-utils \
-    re2c
-    
-RUN \
+    re2c \
+    apache2-utils \
+    git \
+    logrotate \
+    nano \
+    php83 \
+    php83-ctype \
+    php83-curl \
+    php83-fileinfo \
+    php83-fpm \
+    php83-iconv \
+    php83-json \
+    php83-mbstring \
+    php83-openssl \
+    php83-phar \
+    php83-session \
+    php83-simplexml \
+    php83-xml \
+    php83-xmlwriter \
+    php83-zip \
+    php83-zlib && \
+
+    echo "**** guarantee correct php version is symlinked ****" && \
+  if [ "$(readlink /usr/bin/php)" != "php83" ]; then \
+    rm -rf /usr/bin/php && \
+    ln -s /usr/bin/php83 /usr/bin/php; \
+  fi && \
+  echo "**** configure php ****" && \
+  sed -i "s#;error_log = log/php83/error.log.*#error_log = /config/log/php/error.log#g" \
+    /etc/php83/php-fpm.conf && \
+  sed -i "s#user = nobody.*#user = abc#g" \
+    /etc/php83/php-fpm.d/www.conf && \
+  sed -i "s#group = nobody.*#group = abc#g" \
+    /etc/php83/php-fpm.d/www.conf && \
+  echo "**** add run paths to php runtime config ****" && \
+  grep -qxF 'include=/config/php/*.conf' /etc/php83/php-fpm.conf || echo 'include=/config/php/*.conf' >> /etc/php83/php-fpm.conf && \
+  echo "**** install php composer ****" && \
+  EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')" && \
+  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+  ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")" && \
+  if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then \
+    >&2 echo 'ERROR: Invalid installer checksum' && \
+    rm composer-setup.php && \
+    exit 1; \
+  fi && \
+  php composer-setup.php --install-dir=/usr/bin && \
+  rm composer-setup.php && \
+  ln -s /usr/bin/composer.phar /usr/bin/composer && \
+  echo "**** fix logrotate ****" && \
+  sed -i "s#/var/log/messages {}.*# #g" \
+    /etc/logrotate.conf && \
+  sed -i 's#/usr/sbin/logrotate /etc/logrotate.conf#/usr/sbin/logrotate /etc/logrotate.conf -s /config/log/logrotate.status#g' \
+    /etc/periodic/daily/logrotate && \
+
   echo "**** modify php-fpm process limits ****" && \
-  sudo sed -i 's/pm.max_children = 5/pm.max_children = 32/' /etc/php83/php-fpm.d/www.conf
-  
-RUN \
+  sed -i 's/pm.max_children = 5/pm.max_children = 32/' /etc/php83/php-fpm.d/www.conf && \
   echo "**** download piwigo ****" && \
   if [ -z ${PIWIGO_RELEASE+x} ]; then \
     PIWIGO_RELEASE=$(curl -sX GET "https://api.github.com/repos/Piwigo/Piwigo/releases/latest" \
@@ -51,9 +101,7 @@ RUN \
     "https://piwigo.org/download/dlcounter.php?code=${PIWIGO_RELEASE}" && \
   unzip -q /tmp/piwigo.zip -d /tmp && \
   mv /tmp/piwigo/* /app/www/public && \
-  printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version
-  
-RUN \  
+  printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \  
   echo "**** cleanup ****" && \
   rm -rf \
     /tmp/*
